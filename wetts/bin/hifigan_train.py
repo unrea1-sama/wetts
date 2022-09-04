@@ -22,6 +22,7 @@ import numpy as np
 import jsonlines
 import torch
 from torch import optim
+from torch import nn
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -36,6 +37,7 @@ from wetts.models.vocoder.hifigan.hifigan import (Generator,
                                                   MultiPeriodDiscriminator,
                                                   MultiScaleDiscriminator)
 from wetts.models.vocoder.hifigan.module import loss
+from wetts.models.vocoder.hifigan.module.mel import MelspectrogramLayer
 from wetts.models.vocoder.hifigan.module.dataset import (
     HiFiGANFinetuneDataset, HiFiGANTrainingDataset)
 
@@ -251,7 +253,8 @@ def train(hifigan_conf,
           validation_interval,
           save_interval,
           hifigan_train_dataset,
-          hifigan_val_dataset=None):
+          hifigan_val_dataset=None,
+          mel_loss_factor=45):
     export_dir = pathlib.Path(export_dir)
     hifigan_generator = Generator(hifigan_conf.model.resblock_kernel_sizes,
                                   hifigan_conf.model.resblock_dilation_sizes,
@@ -261,6 +264,13 @@ def train(hifigan_conf,
                                   hifigan_conf.model.resblock_type)
     hifigan_mpd = MultiPeriodDiscriminator()
     hifigan_msd = MultiScaleDiscriminator()
+    mel_layer = MelspectrogramLayer(hifigan_conf.sr, hifigan_conf.n_fft,
+                                    hifigan_conf.n_mels,
+                                    hifigan_conf.hop_length,
+                                    hifigan_conf.win_length, hifigan_conf.fmin,
+                                    hifigan_conf.fmax)
+
+    l1_loss = nn.L1Loss()
 
     if hifigan_ckpt:
         hifigan_generator_ckpt, hifigan_discriminator_ckpt = hifigan_ckpt
@@ -279,6 +289,7 @@ def train(hifigan_conf,
     hifigan_generator = hifigan_generator.cuda()
     hifigan_mpd = hifigan_mpd.cuda()
     hifigan_msd = hifigan_msd.cuda()
+    mel_layer = mel_layer.cuda()
 
     optim_g = optim.AdamW(hifigan_generator.parameters(),
                           hifigan_conf.optimizer.lr,
@@ -317,11 +328,7 @@ def train(hifigan_conf,
     hifigan_generator.train()
     hifigan_mpd.train()
     hifigan_msd.train()
-    hifigan_mel_loss = loss.HiFiGANMelLoss(hifigan_conf.sr, hifigan_conf.n_fft,
-                                           hifigan_conf.n_mels,
-                                           hifigan_conf.hop_length,
-                                           hifigan_conf.win_length,
-                                           hifigan_conf.fmin).cuda()
+
     writer = SummaryWriter(export_dir / 'log')
 
     for i in range(start_epoch, start_epoch + total_epoch):
@@ -356,7 +363,7 @@ def train(hifigan_conf,
             optim_g.zero_grad()
 
             # L1 Mel-Spectrogram Loss
-            loss_mel = hifigan_mel_loss(gen_wav_clip.squeeze(1), wav_clip)
+            loss_mel = l1_loss(mel_layer(gen_wav_clip.squeeze(1)), mel_clip)
 
             y_df_hat_r, y_df_hat_g, fmap_f_r, fmap_f_g = hifigan_mpd(
                 wav_clip.unsqueeze(1), gen_wav_clip)
@@ -367,7 +374,7 @@ def train(hifigan_conf,
             loss_gen_f, losses_gen_f = loss.generator_loss(y_df_hat_g)
             loss_gen_s, losses_gen_s = loss.generator_loss(y_ds_hat_g)
             loss_gen_all = (loss_gen_s + loss_gen_f + loss_fm_s + loss_fm_f +
-                            loss_mel * 45)
+                            loss_mel * mel_loss_factor)
 
             loss_gen_all.backward()
             optim_g.step()
@@ -421,8 +428,8 @@ def train(hifigan_conf,
                             mel_clip = mel_clip.permute(0, 2, 1).cuda()
                             wav_clip = wav_clip.cuda()
                             gen_wav_clip = hifigan_generator(mel_clip)
-                            loss_mel = hifigan_mel_loss(
-                                gen_wav_clip.squeeze(1), wav_clip)
+                            loss_mel = l1_loss(
+                                mel_layer(gen_wav_clip.squeeze(1)), mel_clip)
                             total_loss.append(loss_mel.item())
 
                         # randomly pick up one full mel from last batch

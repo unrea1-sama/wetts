@@ -13,10 +13,7 @@
 # limitations under the License.
 # Modified from HiFi-GAN(https://github.com/jik876/hifi-gan)
 
-from librosa.filters import mel as librosa_mel_fn
-
 import torch
-from torch import nn
 
 
 def feature_loss(fmap_r, fmap_g):
@@ -51,57 +48,3 @@ def generator_loss(disc_outputs):
         loss += l
 
     return loss, gen_losses
-
-# TODO: Using pytorch to get mel-spectrogram for both feature extraction and
-# loss calculation.
-
-class HiFiGANMelLoss(nn.Module):
-
-    def __init__(self,
-                 sr,
-                 n_fft,
-                 num_mels,
-                 hop_length,
-                 win_length,
-                 fmin,
-                 fmax=None):
-        super().__init__()
-        self.sr = sr
-        self.n_fft = n_fft
-        self.num_mels = num_mels
-        self.hop_length = hop_length
-        self.win_length = win_length
-        self.fmin = fmin
-        self.fmax = fmax
-        # mel_basis: n_mel, n_fft+1
-        self.mel_basis = nn.Parameter(torch.from_numpy(
-            librosa_mel_fn(sr=sr,
-                           n_fft=n_fft,
-                           n_mels=num_mels,
-                           fmin=fmin,
-                           fmax=fmax)), requires_grad=False)
-        self.hann_window = nn.Parameter(torch.hann_window(win_length),
-                                        requires_grad=False)
-        self.l1_loss = nn.L1Loss()
-
-    def forward(self, y_prediction, y):
-        return self.l1_loss(self._get_mel(y_prediction), self._get_mel(y))
-
-    def _get_mel(self, x):
-        x = nn.functional.pad(x.unsqueeze(1),
-                              (int((self.n_fft - self.hop_length) / 2),
-                               int((self.n_fft - self.hop_length) / 2)),
-                              mode='reflect').squeeze(1)
-        spec = torch.stft(x,
-                          n_fft=self.n_fft,
-                          hop_length=self.hop_length,
-                          win_length=self.win_length,
-                          window=self.hann_window,
-                          center=False,
-                          pad_mode='reflect',
-                          return_complex=True,
-                          normalized=False,
-                          onesided=True)
-        spec = torch.matmul(self.mel_basis, torch.abs(spec))
-        spec = torch.log(torch.clamp(spec, min=1e-5))
-        return spec

@@ -37,3 +37,13 @@ raw_wav
 tensorboard
 **/*build*
 /BZNSYP
+examples/aishell3/AISHELL-3
+examples/aishell3/new_test
+examples/aishell3/test
+examples/aishell3/log
+examples/aishell3/finetuned
+examples/aishell3/finetuned_train/
+examples/aishell3/fastspeech2/
+examples/aishell3/hifigan/
+examples/aishell3/log_phoneme_idx/
+examples/aishell3/horizon_tts

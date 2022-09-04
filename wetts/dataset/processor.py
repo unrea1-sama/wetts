@@ -72,7 +72,7 @@ def batch(data, batch_size=2):
         yield buf
 
 
-def resample(data, resample_rate=16000):
+def resample(data, resample_rate=22050):
     """ Resample data.
         Inplace operation.
         Args:
@@ -85,13 +85,11 @@ def resample(data, resample_rate=16000):
         assert 'sample_rate' in sample
         assert 'wav' in sample
         sample_rate = sample['sample_rate']
-        waveform = sample['wav']
         if sample_rate != resample_rate:
             sample['sample_rate'] = resample_rate
-            # clamp here to force resampled audio in range [-1,1]
-            sample['wav'] = torchaudio.transforms.Resample(
-                orig_freq=sample_rate,
-                new_freq=resample_rate)(waveform).clamp(min=-1, max=1)
+            # clamp here to make resampled audio be in range [-1,1]
+            sample['wav'] = torchaudio.functional.resample(
+                sample['wav'], sample_rate, resample_rate).clamp(min=-1, max=1)
         yield sample
 
 

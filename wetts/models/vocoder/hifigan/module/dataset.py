@@ -49,7 +49,6 @@ def get_mel_wav_clip(data,
                      hop_length=256,
                      num_train_clips=0):
     for sample in data:
-        sample['mel'] = torch.from_numpy(sample['mel']).float()
         mel_clip_len = segment_size // hop_length
         mel_len = sample['mel'].size(0)
         # idx_list will contain some segments which are shorter than segment_size

@@ -16,73 +16,63 @@ import librosa
 import numpy as np
 import pyworld
 from scipy.interpolate import interp1d
+import torch
 
 
 class LogMelFBank():
 
-    def __init__(self,
-                 sr=24000,
-                 n_fft=2048,
-                 hop_length=300,
-                 win_length=None,
-                 window="hann",
-                 n_mels=80,
-                 fmin=80,
-                 fmax=7600):
+    def __init__(
+        self,
+        sr,
+        n_fft,
+        hop_length,
+        win_length,
+        n_mels,
+        fmin=0,
+        fmax=None,
+    ):
+        """Melspectrogram extractor.
+
+        Args:
+            sr (int): sampling rate of the incoming signal
+            n_fft (int): number of FFT components
+            hop_length (int):  the distance between neighboring sliding window frames
+            win_length (int): the size of window frame and STFT filter
+            n_mels (int): number of Mel bands to generate
+            fmin (int): lowest frequency (in Hz)
+            fmax (int): highest frequency (in Hz)
+        """
+        super().__init__()
         self.sr = sr
         # stft
         self.n_fft = n_fft
         self.win_length = win_length
         self.hop_length = hop_length
-        self.window = window
-        self.center = True
-        self.pad_mode = "reflect"
 
         # mel
         self.n_mels = n_mels
-        self.fmin = 0 if fmin is None else fmin
-        self.fmax = sr / 2 if fmax is None else fmax
 
-        self.mel_filter = self._create_mel_filter()
+        self.window = torch.hann_window(win_length)
+        self.mel_filter = torch.from_numpy(
+            librosa.filters.mel(sr=sr,
+                                n_fft=n_fft,
+                                n_mels=n_mels,
+                                fmin=fmin,
+                                fmax=fmax))
 
-    def _create_mel_filter(self):
-        mel_filter = librosa.filters.mel(sr=self.sr,
-                                         n_fft=self.n_fft,
-                                         n_mels=self.n_mels,
-                                         fmin=self.fmin,
-                                         fmax=self.fmax)
-        return mel_filter
+    def get_mel_spectrogram(self, wav):
+        return torch_melspectrogram(wav, self.n_fft, self.hop_length,
+                                    self.win_length, self.window,
+                                    self.mel_filter)
 
-    def _stft(self, wav):
-        D = librosa.core.stft(wav,
-                              n_fft=self.n_fft,
-                              hop_length=self.hop_length,
-                              win_length=self.win_length,
-                              window=self.window,
-                              center=self.center,
-                              pad_mode=self.pad_mode)
-        return D
-
-    def _spectrogram(self, wav):
-        D = self._stft(wav)
-        return np.abs(D)
-
-    def _mel_spectrogram(self, wav):
-        S = self._spectrogram(wav)
-        mel = np.dot(self.mel_filter, S)
-        return mel
-
-    def get_log_mel_fbank(self, wav):
-        mel = self._mel_spectrogram(wav)
-        mel = np.clip(mel, a_min=1e-10, a_max=float("inf"))
-        mel = np.log(mel.T)
-        # (num_frames, n_mels)
-        return mel
+    def get_linear_spectrogram(self, wav):
+        return torch_linear_spectrogram(wav, self.n_fft, self.hop_length,
+                                        self.win_length, self.window)
 
 
 class Pitch():
 
-    def __init__(self, sr=24000, hop_length=300, pitch_min=80, pitch_max=7600):
+    def __init__(self, sr, hop_length, pitch_min, pitch_max):
 
         self.sr = sr
         self.hop_length = hop_length
@@ -160,22 +150,14 @@ class Pitch():
 
 class Energy():
 
-    def __init__(self,
-                 sr=24000,
-                 n_fft=2048,
-                 hop_length=300,
-                 win_length=None,
-                 window="hann",
-                 center=True,
-                 pad_mode="reflect"):
+    def __init__(self, sr, n_fft, hop_length, win_length, min_amp=1e-5):
 
         self.sr = sr
         self.n_fft = n_fft
         self.win_length = win_length
         self.hop_length = hop_length
-        self.window = window
-        self.center = center
-        self.pad_mode = pad_mode
+        self.window = torch.hann_window(win_length)
+        self.min_amp = min_amp
 
     def _stft(self, wav):
         D = librosa.core.stft(wav,
@@ -187,14 +169,10 @@ class Energy():
                               pad_mode=self.pad_mode)
         return D
 
-    def _calculate_energy(self, input):
-        input = input.astype(np.float32)
-        input_stft = self._stft(input)
-        input_power = np.abs(input_stft)**2
-        energy = np.sqrt(
-            np.clip(np.sum(input_power, axis=0),
-                    a_min=1.0e-10,
-                    a_max=float('inf')))
+    def _calculate_energy(self, x):
+        stft = torch_stft(x, self.n_fft, self.hop_length, self.win_length,
+                          self.win_length)
+        energy = (stft.abs()**2).sum(dim=0).clamp(min=self.min_amp).sqrt()
         return energy
 
     def _average_by_duration(self, input: np.array, d: np.array) -> np.array:
@@ -213,3 +191,78 @@ class Energy():
         if use_token_averaged_energy and duration is not None:
             energy = self._average_by_duration(energy, duration)
         return energy
+
+
+def torch_stft(x, n_fft, hop_length, win_length, window):
+    """Performing STFT using torch.
+
+    Args:
+        x (torch.Tensor): input signal. Shape (*,t). * is an optional batch
+        dimension.
+        n_fft (int): size of Fourier transform.
+        hop_length (int): the distance between neighboring sliding window
+        frames.
+        win_length (int): the size of window frame and STFT filter.
+        window (torch.Tensor): window tensor. Shape (win_length).
+
+    Returns: STFT of shape (*,1+n_fft/2,t)
+    """
+    return torch.stft(x,
+                      n_fft=n_fft,
+                      hop_length=hop_length,
+                      win_length=win_length,
+                      window=window,
+                      center=True,
+                      onesided=True,
+                      return_complex=True)
+
+
+def torch_melspectrogram(x,
+                         n_fft,
+                         hop_length,
+                         win_length,
+                         window,
+                         mel_basis,
+                         min_amp=1e-5):
+    """Calculating melspectrogram using torch.
+
+    Args:
+        x (torch.Tensor): input signal. Shape (*,t). * is an optional batch
+        dimension.
+        n_fft (int): size of Fourier transform.
+        hop_length (int): the distance between neighboring sliding window
+        frames.
+        win_length (int): the size of window frame and STFT filter.
+        window (torch.Tensor): window tensor. Shape (win_length).
+        mel_basis (torch.Tensor): mel filter-bank of shape (n_mels,1+n_fft/2).
+        min_amp (float): minimum amplitude. Defaults to 1e-5.
+
+    Returns: melspectrogram of shape (*,n_mels,t)
+    """
+    stft = torch_stft(x, n_fft, hop_length, win_length, window)
+    spec = torch.matmul(mel_basis, torch.abs(stft))
+    return torch.log10(torch.clamp(torch.abs(spec), min=min_amp))
+
+
+def torch_linear_spectrogram(x,
+                             n_fft,
+                             hop_length,
+                             win_length,
+                             window,
+                             min_amp=1e-5):
+    """Calculating linear spectrogram using torch.
+
+    Args:
+        x (torch.Tensor): input signal. Shape (*,t). * is an optional batch
+        dimension.
+        n_fft (int): size of Fourier transform.
+        hop_length (int): the distance between neighboring sliding window
+        frames.
+        win_length (int): the size of window frame and STFT filter.
+        window (torch.Tensor): window tensor. Shape (win_length).
+        min_amp (float): minimum amplitude. Defaults to 1e-5.
+
+    Returns: spectrogram of shape (*,1+n_fft/2,t)
+    """
+    stft = torch_stft(x, n_fft, hop_length, win_length, window)
+    return torch.log10(torch.clamp(torch.abs(stft), min=min_amp))

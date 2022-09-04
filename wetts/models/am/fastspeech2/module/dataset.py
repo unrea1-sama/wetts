@@ -178,12 +178,11 @@ def compute_feats(data, config, extract_pitch=True, extract_energy=True):
                                         window=config.window)
     for sample in data:
         key = sample['key']
-        wav = sample['wav'].numpy()[0]  # First channel
+        wav = sample['wav'][0]  # First channel
         text = sample['text']
         duration = np.array(sample['duration'])
 
-        assert len(wav.shape) == 1, f'{key} is not a mono-channel audio.'
-        assert np.abs(wav).max(
+        assert wav.abs().max(
         ) <= 1.0, f"{key} is seems to be different that 16 bit PCM."
         assert len(duration) > 0
 
@@ -206,10 +205,10 @@ def compute_feats(data, config, extract_pitch=True, extract_energy=True):
         duration = librosa.time_to_frames(
             duration, sr=config.sr, hop_length=config.hop_length).clip(min=1)
 
-        sample['wav'] = torch.from_numpy(wav)
+        sample['wav'] = wav
         # extract mel feats
-        logmel = mel_extractor.get_log_mel_fbank(wav)
-        num_frames = logmel.shape[0]
+        mel = mel_extractor.get_mel_spectrogram(wav).T
+        num_frames = mel.shape[0]
         diff = num_frames - sum(duration)
         if diff != 0:
             if diff > 0:
@@ -234,7 +233,7 @@ def compute_feats(data, config, extract_pitch=True, extract_energy=True):
             sample['energy'] = energy
 
         sample['duration'] = duration
-        sample['mel'] = logmel
+        sample['mel'] = mel
         sample['text'] = text
         yield sample
 
