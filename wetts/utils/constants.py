@@ -14,3 +14,5 @@
 
 AUDIO_FORMAT_SETS = set(['flac', 'mp3', 'm4a', 'ogg', 'opus', 'wav', 'wma'])
 SILENCE_PHONES = set(['sil', 'sp'])
+SPECIAL_PHONES = set(['<bos>', '<eos>', '<blank>', '<unk>'])
+PAD_TOKEN = '<pad>'

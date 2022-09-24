@@ -49,7 +49,7 @@ def padding_training_samples(data):
         sorted_text = [
             torch.tensor(sample[i]['text'], dtype=torch.int32) for i in order
         ]
-        sorted_mel = [torch.from_numpy(sample[i]['mel']) for i in order]
+        sorted_mel = [sample[i]['mel'] for i in order]
         sorted_pitch = [torch.from_numpy(sample[i]['pitch']) for i in order]
         sorted_energy = [torch.from_numpy(sample[i]['energy']) for i in order]
         sorted_text_length = torch.tensor(
@@ -161,7 +161,6 @@ def compute_feats(data, config, extract_pitch=True, extract_energy=True):
                                       n_fft=config.n_fft,
                                       hop_length=config.hop_length,
                                       win_length=config.win_length,
-                                      window=config.window,
                                       n_mels=config.n_mels,
                                       fmin=config.fmin,
                                       fmax=config.fmax)
@@ -174,8 +173,7 @@ def compute_feats(data, config, extract_pitch=True, extract_energy=True):
         energy_extractor = feats.Energy(sr=config.sr,
                                         n_fft=config.n_fft,
                                         hop_length=config.hop_length,
-                                        win_length=config.win_length,
-                                        window=config.window)
+                                        win_length=config.win_length)
     for sample in data:
         key = sample['key']
         wav = sample['wav'][0]  # First channel

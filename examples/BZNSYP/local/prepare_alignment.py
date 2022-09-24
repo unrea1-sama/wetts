@@ -40,8 +40,8 @@ def main(args):
         for wav_path, speaker, text in zip(fwav, fspeaker, ftext):
             wav_path, speaker, text = (pathlib.Path(wav_path.strip()),
                                        speaker.strip(), text.strip().split())
-            lab_dir = output_dir / speaker
-            lab_file = output_dir / speaker / '{}.lab'.format(wav_path.stem)
+            lab_dir = output_dir
+            lab_file = output_dir / '{}.lab'.format(wav_path.stem)
 
             lab_dir.mkdir(parents=True, exist_ok=True)
             with lab_file.open('w') as fout:

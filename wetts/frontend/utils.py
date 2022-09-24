@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def read_table(dict_file):
     """ Each line of `dict_file` has two fields, in <str> <int>
     """

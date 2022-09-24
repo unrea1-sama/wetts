@@ -25,6 +25,8 @@ import argparse
 import re
 from collections import OrderedDict
 
+from wetts.utils import constants
+
 INITIALS = [
     'b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h', 'zh', 'ch', 'sh',
     'r', 'z', 'c', 's', 'j', 'q', 'x'
@@ -36,8 +38,6 @@ FINALS = [
     'iong', 'in', 'ing', 'u', 'ua', 'uai', 'uan', 'uang', 'uei', 'uo', 'uen',
     'ueng', 'v', 've', 'van', 'vn'
 ]
-
-SPECIALS = ['sil', 'sp']
 
 
 def rule(C, V, R, T):
@@ -165,14 +165,15 @@ def generate_lexicon(with_tone=False, with_erhua=False):
                     result = rule(C, V, R, T)
                     if result:
                         syllables[result] = f'{C} {V}{R}{T}'
+    # add sp and sil into lexicon
+    for token in constants.SILENCE_PHONES:
+        syllables[token] = token
     return syllables
 
 
 def generate_symbols(lexicon):
     """Generate phoneme list for a lexicon."""
     symbols = set()
-    for p in SPECIALS:
-        symbols.add(p)
     for syllable, phonemes in lexicon.items():
         phonemes = phonemes.split()
         for p in phonemes:

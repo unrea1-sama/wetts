@@ -13,10 +13,6 @@ Create environment:
 ```bash
 conda create -n wetts python=3.8 -y
 ```
-Install MFA:
-```bash
-conda install -n wetts montreal-forced-aligner=2.0.1 -c conda-forge -y
-```
 For CUDA 10.2, run:
 ``` sh
 conda install -n wetts pytorch=1.11 torchaudio cudatoolkit=10.2 -c pytorch -y
@@ -24,6 +20,10 @@ conda install -n wetts pytorch=1.11 torchaudio cudatoolkit=10.2 -c pytorch -y
 For CUDA 11.3, run:
 ``` sh
 conda install -n wetts pytorch=1.11 torchaudio cudatoolkit=11.3 -c pytorch -y
+```
+Install MFA:
+```bash
+conda install -n wetts montreal-forced-aligner=2.0.1 -c conda-forge -y
 ```
 Installing other dependencies using:
 ```sh
@@ -63,6 +63,7 @@ We plan to support a variaty of hardwares and platforms, including:
 
 ## Acknowledgement
 
-1. We borrow some code from [FastSpeech2](https://github.com/ming024/FastSpeech2) for FastSpeech2 implentation.
+1. We borrow some code from [FastSpeech2](https://github.com/ming024/FastSpeech2) for FastSpeech2 implementation.
 2. We refer [PaddleSpeech](https://github.com/PaddlePaddle/PaddleSpeech) for feature extraction,
    `pinyin` lexicon preparation for alignment, and the length regulator in `FastSpeech2`.
+3. We borrow code from [HiFiGAN](https://github.com/jik876/hifi-gan) for HiGiGAN implementation.

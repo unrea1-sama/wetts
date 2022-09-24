@@ -142,7 +142,8 @@ class Pitch():
                   use_log_pitch=False,
                   use_token_averaged_pitch=True,
                   duration=None):
-        pitch = self._calculate_pitch(wav, use_continuous_pitch, use_log_pitch)
+        pitch = self._calculate_pitch(wav.numpy(), use_continuous_pitch,
+                                      use_log_pitch)
         if use_token_averaged_pitch and duration is not None:
             pitch = self._average_by_duration(pitch, duration)
         return pitch
@@ -159,21 +160,11 @@ class Energy():
         self.window = torch.hann_window(win_length)
         self.min_amp = min_amp
 
-    def _stft(self, wav):
-        D = librosa.core.stft(wav,
-                              n_fft=self.n_fft,
-                              hop_length=self.hop_length,
-                              win_length=self.win_length,
-                              window=self.window,
-                              center=self.center,
-                              pad_mode=self.pad_mode)
-        return D
-
     def _calculate_energy(self, x):
         stft = torch_stft(x, self.n_fft, self.hop_length, self.win_length,
-                          self.win_length)
+                          self.window)
         energy = (stft.abs()**2).sum(dim=0).clamp(min=self.min_amp).sqrt()
-        return energy
+        return energy.numpy()
 
     def _average_by_duration(self, input: np.array, d: np.array) -> np.array:
         d_cumsum = np.pad(d.cumsum(0), (1, 0), 'constant')

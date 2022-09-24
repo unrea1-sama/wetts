@@ -265,9 +265,9 @@ def train(hifigan_conf,
     hifigan_mpd = MultiPeriodDiscriminator()
     hifigan_msd = MultiScaleDiscriminator()
     mel_layer = MelspectrogramLayer(hifigan_conf.sr, hifigan_conf.n_fft,
-                                    hifigan_conf.n_mels,
                                     hifigan_conf.hop_length,
-                                    hifigan_conf.win_length, hifigan_conf.fmin,
+                                    hifigan_conf.win_length,
+                                    hifigan_conf.n_mels, hifigan_conf.fmin,
                                     hifigan_conf.fmax)
 
     l1_loss = nn.L1Loss()
@@ -363,7 +363,8 @@ def train(hifigan_conf,
             optim_g.zero_grad()
 
             # L1 Mel-Spectrogram Loss
-            loss_mel = l1_loss(mel_layer(gen_wav_clip.squeeze(1)), mel_clip)
+            loss_mel = l1_loss(mel_layer(gen_wav_clip.squeeze(1)),
+                               mel_layer(wav_clip))
 
             y_df_hat_r, y_df_hat_g, fmap_f_r, fmap_f_g = hifigan_mpd(
                 wav_clip.unsqueeze(1), gen_wav_clip)
@@ -429,7 +430,8 @@ def train(hifigan_conf,
                             wav_clip = wav_clip.cuda()
                             gen_wav_clip = hifigan_generator(mel_clip)
                             loss_mel = l1_loss(
-                                mel_layer(gen_wav_clip.squeeze(1)), mel_clip)
+                                mel_layer(gen_wav_clip.squeeze(1)),
+                                mel_layer(wav_clip))
                             total_loss.append(loss_mel.item())
 
                         # randomly pick up one full mel from last batch

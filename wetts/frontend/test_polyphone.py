@@ -74,5 +74,6 @@ def main():
 
     print('Accuracy: {}'.format(num_correct / num_total))
 
+
 if __name__ == '__main__':
     main()

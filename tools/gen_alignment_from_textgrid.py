@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
 #               2022 Binbin Zhang(binbzha@qq.com)
+#               2022 Jie Chen
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +21,9 @@ from typing import List, Set
 
 import numpy as np
 from praatio import textgrid
+import tqdm
 
-SILENCE_TOKEN = set(['sp', 'sil'])
+from wetts.utils import constants
 
 
 # in MFA1.x, there are blank labels("") in the end, and maybe "sp" before it
@@ -92,7 +94,7 @@ def insert_special_tokens(seq1: List[str], seq2: List[str],
                 # and move i to skip it
                 new_seq.append(seq1[i])
                 i += 1
-            elif seq2[j] in SILENCE_TOKEN:
+            elif seq2[j] in constants.SILENCE_TOKEN:
                 # we meet a sp or sil in seq2
                 # insert it into new_seq and
                 # skip it
@@ -156,7 +158,7 @@ def main(args):
         durations = []
         aligned_wav = []
         aligned_speaker = []
-        for wav_path, speaker, text in zip(fwav, fspeaker, ftext):
+        for wav_path, speaker, text in tqdm.tqdm(zip(fwav, fspeaker, ftext)):
             wav_path, speaker, text = (pathlib.Path(wav_path.strip()),
                                        speaker.strip(), text.strip().split())
             text_grid_path = text_grid_dir / speaker / '{}.TextGrid'.format(

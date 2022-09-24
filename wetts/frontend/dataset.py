@@ -17,7 +17,6 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from transformers import AutoTokenizer
 
-
 IGNORE_ID = -100
 
 tokenizer = AutoTokenizer.from_pretrained("bert-base-chinese")

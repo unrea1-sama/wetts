@@ -28,6 +28,7 @@ class Generator(nn.Module):
     """HiFiGAN generator.
 
     """
+
     def __init__(self,
                  resblock_kernel_sizes: List[int],
                  resblock_dilation_sizes: List[List[int]],

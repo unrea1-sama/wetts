@@ -15,6 +15,7 @@
 
 import torch
 
+
 def read_lists(list_file):
     lists = []
     with open(list_file, 'r', encoding='utf8') as fin:

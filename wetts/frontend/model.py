@@ -18,6 +18,7 @@ from transformers import AutoModel
 
 
 class FrontendModel(nn.Module):
+
     def __init__(self, num_phones: int, num_prosody: int):
         super(FrontendModel, self).__init__()
         self.bert = AutoModel.from_pretrained('bert-base-chinese')

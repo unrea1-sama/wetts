@@ -73,15 +73,19 @@ def main():
                 # Remove [CLS], [SEP] and padding
                 pred = logits[i][1:lengths[i] + 1, :].argmax(-1).tolist()
                 label = labels[i][1:lengths[i] + 1].tolist()
-                pw_f1_score.append(f1_score([1 if x > 0 else 0 for x in label],
-                                            [1 if x > 0 else 0 for x in pred]))
-                pph_f1_score.append(f1_score([1 if x > 1 else 0 for x in label],
-                                             [1 if x > 1 else 0 for x in pred]))
-                iph_f1_score.append(f1_score([1 if x > 2 else 0 for x in label],
-                                             [1 if x > 2 else 0 for x in pred]))
+                pw_f1_score.append(
+                    f1_score([1 if x > 0 else 0 for x in label],
+                             [1 if x > 0 else 0 for x in pred]))
+                pph_f1_score.append(
+                    f1_score([1 if x > 1 else 0 for x in label],
+                             [1 if x > 1 else 0 for x in pred]))
+                iph_f1_score.append(
+                    f1_score([1 if x > 2 else 0 for x in label],
+                             [1 if x > 2 else 0 for x in pred]))
             pbar.update(1)
         print("pw f1_score {} pph f1_score {} iph f1_score {}".format(
-            sum(pw_f1_score) / len(pw_f1_score), sum(pph_f1_score) / len(pph_f1_score),
+            sum(pw_f1_score) / len(pw_f1_score),
+            sum(pph_f1_score) / len(pph_f1_score),
             sum(iph_f1_score) / len(iph_f1_score)))
         pbar.close()
 
