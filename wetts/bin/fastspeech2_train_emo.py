@@ -122,7 +122,8 @@ def train(epoch, models, data_loader, loss_fn, optimizer, lr_scheduler,
                                 energy_target=energy,
                                 speaker=speakers)
         mel_mask = mel_mask.unsqueeze(2)
-        dec_emotion_emb, dec_emotion_logit = emo_net_dec(postnet_mel_prediction, mel_len)
+        dec_emotion_emb, dec_emotion_logit = emo_net_dec(
+            postnet_mel_prediction.detach(), mel_len)
         (duration_loss, pitch_loss, energy_loss, mel_loss, postnet_mel_loss,
          emotion_loss_enc, emotion_loss_dec, emotion_sty_loss) = loss_fn(
              durations, log_duration_prediction, pitch, pitch_prediction,
