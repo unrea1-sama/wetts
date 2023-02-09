@@ -15,6 +15,7 @@
 
 import argparse
 import pathlib
+import math
 
 import scipy.io.wavfile
 import torch
@@ -50,7 +51,7 @@ def get_args(argv=None):
         required=True,
         help='path to directory for exporting inference results')
     parser.add_argument('--max_wav_value',
-                        default=32768,
+                        default=32767,
                         type=int,
                         help='maximum wav value to recover sample points')
     args = parser.parse_args(argv)
@@ -84,7 +85,8 @@ def inference(hifigan_conf, hifigan_ckpt, export_dir, batch_size, num_workers,
             wav_prediction = hifigan_generator(mels).squeeze(1)
             for name, wav, l in zip(names, wav_prediction, lengths):
                 output.append(
-                    (name, wav[:l * hifigan_conf.hop_length] * max_wav_value))
+                    (name, wav[:l * hifigan_conf.hop_length] /
+                     math.fabs(wav.max() - wav.min()) * max_wav_value))
         for name, wav in output:
             scipy.io.wavfile.write(export_dir / '{}.wav'.format(name),
                                    hifigan_conf.sr,
