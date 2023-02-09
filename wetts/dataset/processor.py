@@ -21,14 +21,21 @@ import torchaudio
 def apply_spk2id(data, spk2id):
     for sample in data:
         assert 'speaker' in sample
-        sample['speaker'] = spk2id[sample['speaker']]
+        sample['speaker_id'] = spk2id[sample['speaker']]
         yield sample
 
 
 def apply_phn2id(data, phn2id):
     for sample in data:
         assert 'text' in sample
-        sample['text'] = [phn2id[x] for x in sample['text']]
+        sample['text_id'] = [phn2id[x] for x in sample['text']]
+        yield sample
+
+
+def apply_emo2id(data, emo2id):
+    for sample in data:
+        assert 'emotion' in sample
+        sample['emotion_id'] = emo2id[sample['emotion']]
         yield sample
 
 

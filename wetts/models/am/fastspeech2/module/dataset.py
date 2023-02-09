@@ -36,18 +36,18 @@ def padding_training_samples(data):
     """
     for sample in data:
         assert isinstance(sample, list)
-        text_length = torch.tensor([len(x['text']) for x in sample],
+        text_length = torch.tensor([len(x['text_id']) for x in sample],
                                    dtype=torch.int32)
         order = torch.argsort(text_length, descending=True)
         sorted_keys = [sample[i]['key'] for i in order]
-        sorted_speaker = torch.tensor([sample[i]['speaker'] for i in order],
+        sorted_speaker = torch.tensor([sample[i]['speaker_id'] for i in order],
                                       dtype=torch.int32)
         sorted_duration = [
             torch.tensor(sample[i]['duration'], dtype=torch.int32)
             for i in order
         ]
         sorted_text = [
-            torch.tensor(sample[i]['text'], dtype=torch.int32) for i in order
+            torch.tensor(sample[i]['text_id'], dtype=torch.int32) for i in order
         ]
         sorted_mel = [sample[i]['mel'] for i in order]
         sorted_pitch = [torch.from_numpy(sample[i]['pitch']) for i in order]
