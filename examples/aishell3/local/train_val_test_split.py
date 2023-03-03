@@ -15,6 +15,7 @@
 import argparse
 import collections
 import pathlib
+import random
 
 
 def get_args():
@@ -31,7 +32,7 @@ def get_args():
                         default=20,
                         help='Number of validation samples for each speaker.')
     parser.add_argument('--test_samples',
-                        type=str,
+                        type=int,
                         default=20,
                         help='Number of test samples for each speaker.')
     return parser.parse_args()
@@ -62,6 +63,7 @@ def main(args):
     val_samples = []
     test_samples = []
     for speaker in samples:
+        random.shuffle(samples[speaker])
         training_samples.extend(samples[speaker][args.val_samples +
                                                  args.test_samples:])
         val_samples.extend(

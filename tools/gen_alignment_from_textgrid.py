@@ -94,7 +94,7 @@ def insert_special_tokens(seq1: List[str], seq2: List[str],
                 # and move i to skip it
                 new_seq.append(seq1[i])
                 i += 1
-            elif seq2[j] in constants.SILENCE_TOKEN:
+            elif seq2[j] in constants.SILENCE_PHONES:
                 # we meet a sp or sil in seq2
                 # insert it into new_seq and
                 # skip it
